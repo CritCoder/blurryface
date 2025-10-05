@@ -1,0 +1,13 @@
+{
+  "name": "blurryface",
+  "version": "1.0.0",
+  "description": "Liquid Glass Face Blur Tool",
+  "main": "index.html",
+  "scripts": {
+    "build": "echo 'Static site - no build required'",
+    "start": "echo 'Static site - no start required'"
+  },
+  "keywords": ["face-blur", "privacy", "image-processing"],
+  "author": "Your Name",
+  "license": "MIT"
+}

@@ -1,0 +1,995 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Liquid Glass Face Blur Tool</title>
+    <!-- Lucide Icons for buttons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Face-api.js library -->
+    <script src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api/dist/face-api.min.js"></script>
+    <style>
+      /* Basic Reset */
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        height: 100%;
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell,
+          "Open Sans", "Helvetica Neue", sans-serif;
+        color: #333;
+        overflow: hidden; /* Prevent scrolls */
+      }
+
+      /* App Container - Background Gradient */
+      .app-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(to bottom right, #f0f4f8, #e0e7ef); /* Light gray gradient */
+        padding: 1rem;
+      }
+
+      /* Main Card - Liquid Glass Effect */
+      .main-card {
+        position: relative;
+        width: 100%;
+        max-width: 64rem; /* Equivalent to max-w-4xl */
+        height: 100%;
+        max-height: calc(100vh - 4rem); /* Equivalent to max-h-[calc(100vh-64px)] */
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        border-radius: 2rem; /* Equivalent to rounded-3xl */
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); /* Equivalent to shadow-2xl */
+        overflow: hidden;
+        background-color: rgba(255, 255, 255, 0.3); /* Equivalent to bg-white/30 */
+        backdrop-filter: blur(1rem); /* Equivalent to backdrop-blur-xl */
+        border: 1px solid rgba(255, 255, 255, 0.5); /* Equivalent to border border-white/50 */
+      }
+
+      /* Canvas Container */
+      .canvas-container {
+        position: relative;
+        flex-grow: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        height: 100%;
+        padding: 1rem;
+      }
+
+      #imageCanvas {
+        max-width: 100%;
+        max-height: 100%;
+        object-fit: contain;
+        border-radius: 0.75rem; /* Equivalent to rounded-xl */
+        box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.06); /* Equivalent to shadow-inner */
+        cursor: crosshair;
+      }
+
+      /* Placeholder for no image */
+      .placeholder {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        flex-grow: 1;
+        text-align: center;
+        color: #6b7280; /* Equivalent to text-gray-600 */
+        padding: 2rem;
+      }
+
+      .placeholder svg {
+        width: 6rem; /* Equivalent to w-24 */
+        height: 6rem; /* Equivalent to h-24 */
+        color: #9ca3af; /* Equivalent to text-gray-400 */
+        margin-bottom: 1rem;
+      }
+
+      .placeholder-title {
+        font-size: 1.25rem; /* Equivalent to text-xl */
+        font-weight: 600; /* Equivalent to font-semibold */
+      }
+
+      .placeholder-subtitle {
+        font-size: 0.875rem; /* Equivalent to text-sm */
+        color: #6b7280; /* Equivalent to text-gray-500 */
+        margin-top: 0.5rem;
+      }
+
+      /* Control Panel - Liquid Glass Style */
+      .control-panel {
+        position: absolute;
+        bottom: 1rem;
+        left: 50%;
+        transform: translateX(-50%);
+        width: calc(100% - 2rem); /* Equivalent to w-[calc(100%-32px)] */
+        max-width: 28rem; /* Equivalent to max-w-md */
+        background-color: rgba(255, 255, 255, 0.4); /* Equivalent to bg-white/40 */
+        backdrop-filter: blur(1.5rem); /* Equivalent to backdrop-blur-2xl */
+        border-radius: 1rem; /* Equivalent to rounded-2xl */
+        padding: 1rem;
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); /* Equivalent to shadow-xl */
+        border: 1px solid rgba(255, 255, 255, 0.7); /* Equivalent to border border-white/70 */
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+      }
+
+      /* Error Message */
+      .error-message {
+        background-color: #fee2e2; /* bg-red-100 */
+        border: 1px solid #ef4444; /* border-red-400 */
+        color: #b91c1c; /* text-red-700 */
+        padding: 0.75rem 1rem;
+        border-radius: 0.25rem;
+        font-size: 0.875rem;
+        position: relative;
+      }
+
+      /* Button Styles */
+      .button-group {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+      }
+
+      .button {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0.625rem 1rem; /* py-2 px-4 */
+        border-radius: 0.375rem; /* rounded-md */
+        font-size: 0.875rem; /* text-sm */
+        font-weight: 500; /* font-medium */
+        transition: background-color 0.2s, border-color 0.2s, transform 0.1s;
+        cursor: pointer;
+        white-space: nowrap;
+      }
+
+      .button svg {
+        margin-right: 0.5rem; /* mr-2 */
+        width: 1rem; /* h-4 w-4 */
+        height: 1rem;
+      }
+
+      .button.primary {
+        background-color: #000; /* bg-black */
+        color: #fff; /* text-white */
+        border: 1px solid #000;
+      }
+
+      .button.primary:hover:not(:disabled) {
+        background-color: #374151; /* hover:bg-gray-800 */
+      }
+
+      .button.outline {
+        background-color: rgba(255, 255, 255, 0.8); /* bg-white/80 */
+        color: #374151; /* text-gray-800 */
+        border: 1px solid #d1d5db; /* border-gray-300 */
+      }
+
+      .button.outline:hover:not(:disabled) {
+        background-color: rgba(255, 255, 255, 0.9); /* hover:bg-white/90 */
+      }
+
+      .button.destructive {
+        background-color: #ef4444; /* bg-red-500 */
+        color: #fff; /* text-white */
+        border: 1px solid #ef4444;
+      }
+
+      .button.destructive:hover:not(:disabled) {
+        background-color: #dc2626; /* hover:bg-red-600 */
+      }
+
+      .button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      /* Control Group (for labels and inputs/radios) */
+      .control-group {
+        display: grid;
+        gap: 0.5rem; /* gap-2 */
+      }
+
+      .control-label {
+        font-size: 0.875rem; /* text-sm */
+        font-weight: 500; /* font-medium */
+        color: #374151; /* text-gray-800 */
+      }
+
+      /* Radio Group */
+      .radio-group {
+        display: flex;
+        gap: 1rem; /* gap-4 */
+      }
+
+      .radio-item {
+        display: flex;
+        align-items: center;
+        space-x: 0.5rem; /* space-x-2 */
+      }
+
+      .radio-item input[type="radio"] {
+        /* Custom radio button styling */
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        appearance: none;
+        width: 1rem;
+        height: 1rem;
+        border: 2px solid #d1d5db; /* border-gray-300 */
+        border-radius: 50%;
+        outline: none;
+        cursor: pointer;
+        transition: border-color 0.2s, background-color 0.2s;
+      }
+
+      .radio-item input[type="radio"]:checked {
+        border-color: #000; /* border-black */
+        background-color: #000; /* bg-black */
+        position: relative;
+      }
+
+      .radio-item input[type="radio"]:checked::before {
+        content: "";
+        display: block;
+        width: 0.5rem;
+        height: 0.5rem;
+        background-color: #fff; /* inner white dot */
+        border-radius: 50%;
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+      }
+
+      .radio-item label {
+        font-size: 0.875rem; /* text-sm */
+        color: #374151; /* text-gray-800 */
+        cursor: pointer;
+      }
+
+      /* Slider */
+      .slider {
+        width: 100%;
+        -webkit-appearance: none; /* Override default look */
+        appearance: none;
+        height: 0.5rem; /* h-2 */
+        background: #d1d5db; /* bg-gray-300 */
+        border-radius: 0.25rem; /* rounded-full */
+        outline: none;
+        opacity: 0.7;
+        transition: opacity 0.2s;
+      }
+
+      .slider:hover {
+        opacity: 1;
+      }
+
+      .slider::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 1rem; /* w-4 */
+        height: 1rem; /* h-4 */
+        background: #000; /* bg-black */
+        border-radius: 50%;
+        cursor: grab;
+        transition: transform 0.1s;
+      }
+
+      .slider::-moz-range-thumb {
+        width: 1rem; /* w-4 */
+        height: 1rem; /* h-4 */
+        background: #000; /* bg-black */
+        border-radius: 50%;
+        cursor: grab;
+        transition: transform 0.1s;
+      }
+
+      .slider:focus-visible::-webkit-slider-thumb {
+        transform: scale(1.05); /* scale-105 */
+      }
+
+      .slider:focus-visible::-moz-range-thumb {
+        transform: scale(1.05); /* scale-105 */
+      }
+
+      /* Hidden utility class */
+      .hidden {
+        display: none !important;
+      }
+
+      /* Screen reader only */
+      .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border-width: 0;
+      }
+
+      /* Loader for processing */
+      .processing-overlay {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: rgba(0, 0, 0, 0.3); /* bg-black/30 */
+        border-radius: 0.75rem; /* rounded-xl */
+      }
+
+      .loader {
+        border: 4px solid #f3f3f3; /* Light grey */
+        border-top: 4px solid #fff; /* White */
+        border-radius: 50%;
+        width: 3rem; /* h-12 w-12 */
+        height: 3rem;
+        animation: spin 1s linear infinite;
+      }
+
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app-container">
+      <!-- Main content area with liquid glass effect -->
+      <div class="main-card">
+        <div id="canvas-container" class="canvas-container">
+          <canvas id="imageCanvas"></canvas>
+          <div id="processingOverlay" class="processing-overlay hidden">
+            <div class="loader"></div>
+          </div>
+        </div>
+
+        <div id="placeholder" class="placeholder">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="96"
+            height="96"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.5"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            class="lucide lucide-upload"
+          >
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+            <polyline points="17 8 12 3 7 8" />
+            <line x1="12" x2="12" y1="3" y2="15" />
+          </svg>
+          <p class="placeholder-title">Upload or paste an image to start blurring faces</p>
+          <p class="placeholder-subtitle">Supports JPG, PNG, WebP, and more.</p>
+        </div>
+
+        <!-- Control Panel - Liquid Glass Style -->
+        <div class="control-panel">
+          <div id="errorDisplay" class="error-message hidden" role="alert">
+            <span id="errorMessageText"></span>
+          </div>
+
+          <!-- Image Upload/Change & Reset -->
+          <div class="button-group">
+            <label for="imageUpload" class="sr-only">Upload Image</label>
+            <input id="imageUpload" type="file" accept="image/*" class="hidden" />
+            <button id="uploadImageBtn" class="button primary">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                class="lucide lucide-upload"
+              >
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="17 8 12 3 7 8" />
+                <line x1="12" x2="12" y1="3" y2="15" />
+              </svg>
+              <span id="uploadButtonText">Upload Image</span>
+            </button>
+            <button id="resetBtn" class="button outline">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                class="lucide lucide-eraser"
+              >
+                <path d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.4-9.4c1-1 2.5-1 3.4 0L21 3" />
+                <path d="M22 21 15 14" />
+                <path d="M14 15 21 22" />
+              </svg>
+              Reset
+            </button>
+          </div>
+
+          <!-- Blur Type Selection -->
+          <div class="control-group">
+            <label class="control-label">Blur Type</label>
+            <div class="radio-group">
+              <div class="radio-item">
+                <input type="radio" id="gaussian" name="blurType" value="gaussian" />
+                <label for="gaussian">Gaussian</label>
+              </div>
+              <div class="radio-item">
+                <input type="radio" id="pixelate" name="blurType" value="pixelate" checked />
+                <label for="pixelate">Pixelate</label>
+              </div>
+            </div>
+          </div>
+
+          <!-- Blur Intensity Slider -->
+          <div class="control-group">
+            <label for="blurSlider" class="control-label">
+              Blur Intensity: <span id="blurValue">20</span>px
+            </label>
+            <input type="range" id="blurSlider" min="0" max="50" value="20" step="1" class="slider" />
+          </div>
+
+          <!-- Tool Mode Selection -->
+          <div class="control-group">
+            <label class="control-label">Blur Mode</label>
+            <div class="button-group">
+              <button id="autoFaceBlurBtn" class="button primary">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  class="lucide lucide-scan-face"
+                >
+                  <path d="M3 7V5a2 2 0 0 1 2-2h2" />
+                  <path d="M17 3h2a2 2 0 0 1 2 2v2" />
+                  <path d="M21 17v2a2 2 0 0 1-2 2h-2" />
+                  <path d="M7 21H5a2 2 0 0 1-2-2v-2" />
+                  <path d="M8 14s1.5 2 4 2 4-2 4-2" />
+                  <circle cx="12" cy="10" r="2" />
+                </svg>
+                Auto Detect Faces
+              </button>
+              <button id="manualSelectBlurBtn" class="button outline">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  class="lucide lucide-mouse-pointer-2"
+                >
+                  <path d="m4 4 7.07 17 2.51-7.31L17 11.07 4 4z" />
+                  <path d="m13 13 6 6" />
+                </svg>
+                Manual Select
+              </button>
+            </div>
+          </div>
+
+          <!-- Manual Mode Controls -->
+          <button id="clearManualAreasBtn" class="button destructive hidden">
+            Clear Manual Selections
+          </button>
+
+          <!-- Apply Blur & Download -->
+          <div class="button-group">
+            <button id="applyBlurBtn" class="button primary">Apply Blur</button>
+            <button id="downloadBtn" class="button outline">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                class="lucide lucide-download"
+              >
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="7 10 12 15 17 10" />
+                <line x1="12" x2="12" y1="15" y2="3" />
+              </svg>
+              Download
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <script>
+      document.addEventListener("DOMContentLoaded", () => {
+        const imageCanvas = document.getElementById("imageCanvas")
+        const ctx = imageCanvas.getContext("2d")
+        const uploadImageBtn = document.getElementById("uploadImageBtn")
+        const uploadButtonText = document.getElementById("uploadButtonText")
+        const imageUploadInput = document.getElementById("imageUpload")
+        const resetBtn = document.getElementById("resetBtn")
+        const blurSlider = document.getElementById("blurSlider")
+        const blurValueSpan = document.getElementById("blurValue")
+        const applyBlurBtn = document.getElementById("applyBlurBtn")
+        const downloadBtn = document.getElementById("downloadBtn")
+        const placeholder = document.getElementById("placeholder")
+        const canvasContainer = document.getElementById("canvas-container")
+        const processingOverlay = document.getElementById("processingOverlay")
+        const errorDisplay = document.getElementById("errorDisplay")
+        const errorMessageText = document.getElementById("errorMessageText")
+
+        const gaussianRadio = document.getElementById("gaussian")
+        const pixelateRadio = document.getElementById("pixelate")
+
+        const autoFaceBlurBtn = document.getElementById("autoFaceBlurBtn")
+        const manualSelectBlurBtn = document.getElementById("manualSelectBlurBtn")
+        const clearManualAreasBtn = document.getElementById("clearManualAreasBtn")
+
+        let originalImage = null
+        let blurRadius = Number.parseInt(blurSlider.value)
+        let faces = []
+        let isLoadingModels = true
+        let isProcessing = false
+        let blurType = pixelateRadio.checked ? "pixelate" : "gaussian" // Default from HTML
+        let toolMode = "auto-face-blur" // Default mode
+
+        // Manual selection variables
+        let isDrawing = false
+        let startPoint = null
+        let currentRect = null
+        let manualBlurAreas = []
+
+        // Face API library
+        const faceapi = window.faceapi
+
+        // --- UI State Management ---
+        function updateUIState() {
+          const hasImage = originalImage !== null
+          const hasFacesOrManualAreas = faces.length > 0 || manualBlurAreas.length > 0
+
+          // General buttons
+          uploadImageBtn.disabled = isLoadingModels || isProcessing
+          resetBtn.disabled = !hasImage || isProcessing
+          downloadBtn.disabled = !hasImage || isProcessing
+
+          // Blur type radios
+          gaussianRadio.disabled = !hasImage || isProcessing
+          pixelateRadio.disabled = !hasImage || isProcessing
+
+          // Blur slider
+          blurSlider.disabled = !hasImage || isProcessing || !hasFacesOrManualAreas
+
+          // Mode buttons
+          autoFaceBlurBtn.disabled = !hasImage || isProcessing
+          manualSelectBlurBtn.disabled = !hasImage || isProcessing
+
+          // Apply Blur button
+          applyBlurBtn.disabled = !hasImage || isProcessing || !hasFacesOrManualAreas
+
+          // Clear manual areas button
+          if (toolMode === "manual-select-blur" && manualBlurAreas.length > 0) {
+            clearManualAreasBtn.classList.remove("hidden")
+            clearManualAreasBtn.disabled = isProcessing
+          } else {
+            clearManualAreasBtn.classList.add("hidden")
+          }
+
+          // Placeholder vs Canvas
+          if (hasImage) {
+            placeholder.classList.add("hidden")
+            canvasContainer.classList.remove("hidden")
+          } else {
+            placeholder.classList.remove("hidden")
+            canvasContainer.classList.add("hidden")
+          }
+
+          // Processing overlay
+          if (isProcessing) {
+            processingOverlay.classList.remove("hidden")
+          } else {
+            processingOverlay.classList.add("hidden")
+          }
+
+          // Upload button text
+          uploadButtonText.textContent = hasImage ? "Change Image" : "Upload Image"
+
+          // Mode button styling
+          if (toolMode === "auto-face-blur") {
+            autoFaceBlurBtn.classList.add("primary")
+            autoFaceBlurBtn.classList.remove("outline")
+            manualSelectBlurBtn.classList.add("outline")
+            manualSelectBlurBtn.classList.remove("primary")
+          } else {
+            autoFaceBlurBtn.classList.add("primary")
+            autoFaceBlurBtn.classList.remove("outline")
+            manualSelectBlurBtn.classList.add("outline")
+            manualSelectBlurBtn.classList.remove("primary")
+          }
+        }
+
+        function displayError(message) {
+          errorMessageText.textContent = message
+          errorDisplay.classList.remove("hidden")
+        }
+
+        function clearError() {
+          errorDisplay.classList.add("hidden")
+          errorMessageText.textContent = ""
+        }
+
+        // --- Face API Models Loading ---
+        async function loadModels() {
+          isLoadingModels = true
+          isProcessing = true
+          clearError()
+          updateUIState()
+          try {
+            const MODEL_PATH = "https://raw.githubusercontent.com/justadudewhohacks/face-api.js/master/weights"
+            await Promise.all([
+              faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_PATH),
+              faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_PATH),
+            ])
+            isLoadingModels = false
+          } catch (err) {
+            console.error("Failed to load face-api models:", err)
+            displayError("Failed to load face detection models. Please check your network connection or model paths.")
+            isLoadingModels = false
+          } finally {
+            isProcessing = false
+            updateUIState()
+          }
+        }
+
+        // --- Face Detection ---
+        async function detectFaces(img) {
+          if (!img || isLoadingModels) return []
+          isProcessing = true
+          clearError()
+          updateUIState()
+          try {
+            const detections = await faceapi.detectAllFaces(img, new faceapi.SsdMobilenetv1Options())
+            return detections
+          } catch (err) {
+            console.error("Face detection failed:", err)
+            displayError("Face detection failed. Ensure the image is clear and models are loaded.")
+            return []
+          } finally {
+            isProcessing = false
+            updateUIState()
+          }
+        }
+
+        // --- Canvas Drawing and Blur Application ---
+        function drawCanvasContent() {
+          if (!originalImage) {
+            ctx.clearRect(0, 0, imageCanvas.width, imageCanvas.height)
+            imageCanvas.width = 0
+            imageCanvas.height = 0
+            return
+          }
+
+          imageCanvas.width = originalImage.naturalWidth
+          imageCanvas.height = originalImage.naturalHeight
+
+          ctx.clearRect(0, 0, imageCanvas.width, imageCanvas.height)
+          ctx.drawImage(originalImage, 0, 0, imageCanvas.width, imageCanvas.height)
+
+          const regionsToBlur = toolMode === "auto-face-blur" ? faces.map((d) => d.box) : manualBlurAreas
+
+          regionsToBlur.forEach((box) => {
+            const x = box.x
+            const y = box.y
+            const width = box.width
+            const height = box.height
+
+            const clampedX = Math.max(0, x)
+            const clampedY = Math.max(0, y)
+            const clampedWidth = Math.min(width, imageCanvas.width - clampedX)
+            const clampedHeight = Math.min(height, imageCanvas.height - clampedY)
+
+            if (clampedWidth <= 0 || clampedHeight <= 0) return
+
+            const imageData = ctx.getImageData(clampedX, clampedY, clampedWidth, clampedHeight)
+
+            const tempCanvas = document.createElement("canvas")
+            tempCanvas.width = clampedWidth
+            tempCanvas.height = clampedHeight
+            const tempCtx = tempCanvas.getContext("2d")
+            if (!tempCtx) return
+
+            tempCtx.putImageData(imageData, 0, 0)
+
+            if (blurType === "gaussian") {
+              tempCtx.filter = `blur(${blurRadius}px)`
+              tempCtx.drawImage(tempCanvas, 0, 0)
+            } else if (blurType === "pixelate") {
+              const pixelSize = Math.max(1, Math.floor(blurRadius / 2))
+              const smallWidth = Math.ceil(clampedWidth / pixelSize)
+              const smallHeight = Math.ceil(clampedHeight / pixelSize)
+
+              tempCtx.imageSmoothingEnabled = false
+              tempCtx.drawImage(tempCanvas, 0, 0, smallWidth, smallHeight)
+              tempCtx.drawImage(tempCanvas, 0, 0, smallWidth, smallHeight, 0, 0, clampedWidth, clampedHeight)
+            }
+
+            ctx.drawImage(tempCanvas, clampedX, clampedY, clampedWidth, clampedHeight)
+          })
+
+          // Draw current drawing rectangle in manual mode
+          if (isDrawing && currentRect && toolMode === "manual-select-blur") {
+            ctx.strokeStyle = "rgba(255, 255, 255, 0.8)"
+            ctx.lineWidth = 2
+            ctx.setLineDash([5, 5])
+            ctx.strokeRect(currentRect.x, currentRect.y, currentRect.width, currentRect.height)
+            ctx.setLineDash([])
+          }
+        }
+
+        // --- Image Loading ---
+        async function loadImage(dataUrl) {
+          clearError()
+          isProcessing = true
+          updateUIState()
+
+          const img = new Image()
+          img.crossOrigin = "anonymous"
+          img.onload = async () => {
+            originalImage = img
+            manualBlurAreas = [] // Clear manual areas on new image
+            if (toolMode === "auto-face-blur") {
+              faces = await detectFaces(img)
+            } else {
+              faces = [] // No auto-detection in manual mode
+            }
+            drawCanvasContent()
+            isProcessing = false
+            updateUIState()
+          }
+          img.onerror = () => {
+            displayError("Could not load image. Please ensure it's a valid image file.")
+            originalImage = null
+            faces = []
+            manualBlurAreas = []
+            isProcessing = false
+            updateUIState()
+            drawCanvasContent() // Clear canvas
+          }
+          img.src = dataUrl
+        }
+
+        // --- Event Listeners ---
+
+        // File Upload
+        imageUploadInput.addEventListener("change", (event) => {
+          const file = event.target.files?.[0]
+          if (file) {
+            const reader = new FileReader()
+            reader.onloadend = () => loadImage(reader.result)
+            reader.readAsDataURL(file)
+          }
+        })
+
+        uploadImageBtn.addEventListener("click", () => {
+          imageUploadInput.click()
+        })
+
+        // Paste Image
+        document.addEventListener("paste", (event) => {
+          const items = event.clipboardData?.items
+          if (items) {
+            for (let i = 0; i < items.length; i++) {
+              if (items[i].type.indexOf("image") !== -1) {
+                const blob = items[i].getAsFile()
+                if (blob) {
+                  const reader = new FileReader()
+                  reader.onloadend = () => loadImage(reader.result)
+                  reader.readAsDataURL(blob)
+                  event.preventDefault() // Prevent default paste behavior
+                  return
+                }
+              }
+            }
+          }
+        })
+
+        // Reset Button
+        resetBtn.addEventListener("click", () => {
+          originalImage = null
+          faces = []
+          blurRadius = 20
+          blurSlider.value = 20
+          blurValueSpan.textContent = 20
+          blurType = "pixelate"
+          pixelateRadio.checked = true
+          toolMode = "auto-face-blur"
+          isDrawing = false
+          startPoint = null
+          currentRect = null
+          manualBlurAreas = []
+          clearError()
+          drawCanvasContent() // Clear canvas
+          updateUIState()
+        })
+
+        // Blur Slider
+        blurSlider.addEventListener("input", (event) => {
+          blurRadius = Number.parseInt(event.target.value)
+          blurValueSpan.textContent = blurRadius
+          drawCanvasContent() // Apply blur immediately on slider change
+        })
+
+        // Blur Type Radio Group
+        gaussianRadio.addEventListener("change", (event) => {
+          if (event.target.checked) {
+            blurType = "gaussian"
+            blurSlider.max = 100 // Max for Gaussian
+            if (blurRadius > 100) {
+              blurRadius = 100
+              blurSlider.value = 100
+              blurValueSpan.textContent = 100
+            }
+            drawCanvasContent()
+          }
+        })
+
+        pixelateRadio.addEventListener("change", (event) => {
+          if (event.target.checked) {
+            blurType = "pixelate"
+            blurSlider.max = 50 // Max for Pixelate
+            if (blurRadius > 50) {
+              blurRadius = 50
+              blurSlider.value = 50
+              blurValueSpan.textContent = 50
+            }
+            drawCanvasContent()
+          }
+        })
+
+        // Apply Blur Button (now just re-draws with current settings)
+        applyBlurBtn.addEventListener("click", () => {
+          if (originalImage) {
+            drawCanvasContent()
+          } else {
+            displayError("No image loaded to apply blur.")
+          }
+        })
+
+        // Download Button
+        downloadBtn.addEventListener("click", () => {
+          if (imageCanvas && originalImage) {
+            const link = document.createElement("a")
+            link.download = "blurred-image.png"
+            link.href = imageCanvas.toDataURL("image/png")
+            link.click()
+          }
+        })
+
+        // --- Manual Selection Logic ---
+        function getCanvasCoordinates(event) {
+          const rect = imageCanvas.getBoundingClientRect()
+          const scaleX = imageCanvas.width / rect.width
+          const scaleY = imageCanvas.height / rect.height
+
+          return {
+            x: (event.clientX - rect.left) * scaleX,
+            y: (event.clientY - rect.top) * scaleY,
+          }
+        }
+
+        imageCanvas.addEventListener("mousedown", (event) => {
+          if (toolMode !== "manual-select-blur" || !originalImage) return
+          isDrawing = true
+          startPoint = getCanvasCoordinates(event)
+          currentRect = null // Clear previous temporary rect
+        })
+
+        imageCanvas.addEventListener("mousemove", (event) => {
+          if (!isDrawing || !startPoint || !originalImage) return
+
+          const currentPoint = getCanvasCoordinates(event)
+          const x = Math.min(startPoint.x, currentPoint.x)
+          const y = Math.min(startPoint.y, currentPoint.y)
+          const width = Math.abs(startPoint.x - currentPoint.x)
+          const height = Math.abs(startPoint.y - currentPoint.y)
+
+          currentRect = { x, y, width, height }
+          drawCanvasContent() // Redraw to show the rectangle
+        })
+
+        imageCanvas.addEventListener("mouseup", () => {
+          if (!isDrawing || !currentRect || !originalImage) return
+          isDrawing = false
+          startPoint = null
+          if (currentRect.width > 0 && currentRect.height > 0) {
+            manualBlurAreas.push(currentRect)
+          }
+          currentRect = null // Clear temporary rect after adding
+          drawCanvasContent() // Final redraw with new blurred area
+          updateUIState()
+        })
+
+        imageCanvas.addEventListener("mouseleave", () => {
+          // End drawing if mouse leaves canvas
+          if (isDrawing) {
+            imageCanvas.dispatchEvent(new MouseEvent("mouseup"))
+          }
+        })
+
+        clearManualAreasBtn.addEventListener("click", () => {
+          manualBlurAreas = []
+          currentRect = null
+          isDrawing = false
+          drawCanvasContent()
+          updateUIState()
+        })
+
+        // --- Tool Mode Switching ---
+        autoFaceBlurBtn.addEventListener("click", async () => {
+          if (toolMode === "auto-face-blur") return
+          toolMode = "auto-face-blur"
+          manualBlurAreas = [] // Clear manual areas when switching to auto
+          if (originalImage) {
+            faces = await detectFaces(originalImage)
+          }
+          drawCanvasContent()
+          updateUIState()
+        })
+
+        manualSelectBlurBtn.addEventListener("click", () => {
+          if (toolMode === "manual-select-blur") return
+          toolMode = "manual-select-blur"
+          faces = [] // Clear auto-detected faces when switching to manual
+          drawCanvasContent()
+          updateUIState()
+        })
+
+        // Initial load
+        loadModels().then(() => {
+          updateUIState()
+        })
+      })
+
+      // Initialize Lucide icons after the script loads
+      lucide.createIcons()
+    </script>
+  </body>
+</html>

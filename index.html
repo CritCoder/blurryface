@@ -1,319 +1,344 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Liquid Glass Face Blur Tool</title>
-    <!-- Lucide Icons for buttons -->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Face Blur Tool</title>
     <script src="https://unpkg.com/lucide@latest"></script>
-    <!-- Face-api.js library -->
     <script src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api/dist/face-api.min.js"></script>
     <style>
-      /* Basic Reset */
       * {
         margin: 0;
         padding: 0;
         box-sizing: border-box;
       }
 
-      html,
       body {
-        height: 100%;
-        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell,
-          "Open Sans", "Helvetica Neue", sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
         color: #333;
-        overflow: hidden; /* Prevent scrolls */
-      }
+        }
 
-      /* App Container - Background Gradient */
-      .app-container {
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 1rem;
+            min-height: 100vh;
         display: flex;
         flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        width: 100%;
-        height: 100%;
-        background: linear-gradient(to bottom right, #f0f4f8, #e0e7ef); /* Light gray gradient */
-        padding: 1rem;
-      }
+        }
 
-      /* Main Card - Liquid Glass Effect */
-      .main-card {
-        position: relative;
-        width: 100%;
-        max-width: 64rem; /* Equivalent to max-w-4xl */
-        height: 100%;
-        max-height: calc(100vh - 4rem); /* Equivalent to max-h-[calc(100vh-64px)] */
+        .header {
+            text-align: center;
+            margin-bottom: 2rem;
+            color: white;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .main-content {
+            flex: 1;
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 2rem;
+            align-items: start;
+        }
+
+        @media (min-width: 768px) {
+            .main-content {
+                grid-template-columns: 2fr 1fr;
+                align-items: start;
+            }
+        }
+
+        .image-section {
+            background: white;
+            border-radius: 16px;
+            padding: 1.5rem;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            min-height: 400px;
         display: flex;
         flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        border-radius: 2rem; /* Equivalent to rounded-3xl */
-        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); /* Equivalent to shadow-2xl */
-        overflow: hidden;
-        background-color: rgba(255, 255, 255, 0.3); /* Equivalent to bg-white/30 */
-        backdrop-filter: blur(1rem); /* Equivalent to backdrop-blur-xl */
-        border: 1px solid rgba(255, 255, 255, 0.5); /* Equivalent to border border-white/50 */
-      }
+        }
 
-      /* Canvas Container */
-      .canvas-container {
-        position: relative;
-        flex-grow: 1;
+        .image-container {
+            flex: 1;
         display: flex;
         align-items: center;
         justify-content: center;
-        width: 100%;
-        height: 100%;
-        padding: 1rem;
+            border: 2px dashed #e2e8f0;
+            border-radius: 12px;
+            position: relative;
+            min-height: 300px;
+            transition: all 0.3s ease;
+        }
+
+        .image-container.drag-over {
+            border-color: #667eea;
+            background: #f8fafc;
+        }
+
+        .image-container.has-image {
+            border: none;
+        padding: 0;
       }
 
       #imageCanvas {
         max-width: 100%;
         max-height: 100%;
-        object-fit: contain;
-        border-radius: 0.75rem; /* Equivalent to rounded-xl */
-        box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.06); /* Equivalent to shadow-inner */
+            border-radius: 8px;
         cursor: crosshair;
       }
 
-      /* Placeholder for no image */
       .placeholder {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        flex-grow: 1;
         text-align: center;
-        color: #6b7280; /* Equivalent to text-gray-600 */
-        padding: 2rem;
+            color: #64748b;
       }
 
       .placeholder svg {
-        width: 6rem; /* Equivalent to w-24 */
-        height: 6rem; /* Equivalent to h-24 */
-        color: #9ca3af; /* Equivalent to text-gray-400 */
+            width: 4rem;
+            height: 4rem;
         margin-bottom: 1rem;
+            color: #cbd5e1;
       }
 
-      .placeholder-title {
-        font-size: 1.25rem; /* Equivalent to text-xl */
-        font-weight: 600; /* Equivalent to font-semibold */
-      }
+        .placeholder h3 {
+        font-size: 1.25rem;
+            margin-bottom: 0.5rem;
+            color: #334155;
+        }
 
-      .placeholder-subtitle {
-        font-size: 0.875rem; /* Equivalent to text-sm */
-        color: #6b7280; /* Equivalent to text-gray-500 */
-        margin-top: 0.5rem;
-      }
+        .placeholder p {
+            font-size: 0.9rem;
+            color: #64748b;
+        }
 
-      /* Control Panel - Liquid Glass Style */
-      .control-panel {
-        position: absolute;
-        bottom: 1rem;
-        left: 50%;
-        transform: translateX(-50%);
-        width: calc(100% - 2rem); /* Equivalent to w-[calc(100%-32px)] */
-        max-width: 28rem; /* Equivalent to max-w-md */
-        background-color: rgba(255, 255, 255, 0.4); /* Equivalent to bg-white/40 */
-        backdrop-filter: blur(1.5rem); /* Equivalent to backdrop-blur-2xl */
-        border-radius: 1rem; /* Equivalent to rounded-2xl */
-        padding: 1rem;
-        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); /* Equivalent to shadow-xl */
-        border: 1px solid rgba(255, 255, 255, 0.7); /* Equivalent to border border-white/70 */
-        display: flex;
-        flex-direction: column;
-        gap: 1rem;
-      }
+        .controls-section {
+            background: white;
+            border-radius: 16px;
+        padding: 1.5rem;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            height: fit-content;
+        }
 
-      /* Error Message */
-      .error-message {
-        background-color: #fee2e2; /* bg-red-100 */
-        border: 1px solid #ef4444; /* border-red-400 */
-        color: #b91c1c; /* text-red-700 */
-        padding: 0.75rem 1rem;
-        border-radius: 0.25rem;
-        font-size: 0.875rem;
-        position: relative;
-      }
+        .control-group {
+            margin-bottom: 1.5rem;
+        }
 
-      /* Button Styles */
-      .button-group {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 1rem;
-      }
+        .control-group:last-child {
+            margin-bottom: 0;
+        }
 
-      .button {
-        flex: 1;
-        display: flex;
+        .control-label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: #334155;
+            font-size: 0.9rem;
+        }
+
+        .btn {
+            display: inline-flex;
         align-items: center;
         justify-content: center;
-        padding: 0.625rem 1rem; /* py-2 px-4 */
-        border-radius: 0.375rem; /* rounded-md */
-        font-size: 0.875rem; /* text-sm */
-        font-weight: 500; /* font-medium */
-        transition: background-color 0.2s, border-color 0.2s, transform 0.1s;
+            padding: 0.75rem 1rem;
+            border: none;
+            border-radius: 8px;
+        font-weight: 500;
+            font-size: 0.9rem;
         cursor: pointer;
-        white-space: nowrap;
-      }
+            transition: all 0.2s ease;
+            text-decoration: none;
+            gap: 0.5rem;
+        }
 
-      .button svg {
-        margin-right: 0.5rem; /* mr-2 */
-        width: 1rem; /* h-4 w-4 */
-        height: 1rem;
-      }
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
 
-      .button.primary {
-        background-color: #000; /* bg-black */
-        color: #fff; /* text-white */
-        border: 1px solid #000;
-      }
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
 
-      .button.primary:hover:not(:disabled) {
-        background-color: #374151; /* hover:bg-gray-800 */
-      }
+        .btn-primary:hover:not(:disabled) {
+            background: #5a67d8;
+            transform: translateY(-1px);
+        }
 
-      .button.outline {
-        background-color: rgba(255, 255, 255, 0.8); /* bg-white/80 */
-        color: #374151; /* text-gray-800 */
-        border: 1px solid #d1d5db; /* border-gray-300 */
-      }
+        .btn-secondary {
+            background: #f1f5f9;
+            color: #475569;
+            border: 1px solid #e2e8f0;
+        }
 
-      .button.outline:hover:not(:disabled) {
-        background-color: rgba(255, 255, 255, 0.9); /* hover:bg-white/90 */
-      }
+        .btn-secondary:hover:not(:disabled) {
+            background: #e2e8f0;
+        }
 
-      .button.destructive {
-        background-color: #ef4444; /* bg-red-500 */
-        color: #fff; /* text-white */
-        border: 1px solid #ef4444;
-      }
+        .btn-danger {
+            background: #ef4444;
+            color: white;
+        }
 
-      .button.destructive:hover:not(:disabled) {
-        background-color: #dc2626; /* hover:bg-red-600 */
-      }
+        .btn-danger:hover:not(:disabled) {
+            background: #dc2626;
+        }
 
-      .button:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
-      }
+        .btn-group {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
 
-      /* Control Group (for labels and inputs/radios) */
-      .control-group {
-        display: grid;
-        gap: 0.5rem; /* gap-2 */
-      }
+        .btn-group .btn {
+            flex: 1;
+            min-width: 120px;
+        }
 
-      .control-label {
-        font-size: 0.875rem; /* text-sm */
-        font-weight: 500; /* font-medium */
-        color: #374151; /* text-gray-800 */
-      }
-
-      /* Radio Group */
       .radio-group {
         display: flex;
-        gap: 1rem; /* gap-4 */
+            gap: 1rem;
+            margin-bottom: 0.5rem;
       }
 
       .radio-item {
         display: flex;
         align-items: center;
-        space-x: 0.5rem; /* space-x-2 */
+        gap: 0.5rem;
       }
 
       .radio-item input[type="radio"] {
-        /* Custom radio button styling */
-        -webkit-appearance: none;
-        -moz-appearance: none;
-        appearance: none;
-        width: 1rem;
-        height: 1rem;
-        border: 2px solid #d1d5db; /* border-gray-300 */
-        border-radius: 50%;
-        outline: none;
-        cursor: pointer;
-        transition: border-color 0.2s, background-color 0.2s;
-      }
+            width: 16px;
+            height: 16px;
+            accent-color: #667eea;
+        }
 
-      .radio-item input[type="radio"]:checked {
-        border-color: #000; /* border-black */
-        background-color: #000; /* bg-black */
+        .slider-container {
         position: relative;
       }
 
-      .radio-item input[type="radio"]:checked::before {
-        content: "";
-        display: block;
-        width: 0.5rem;
-        height: 0.5rem;
-        background-color: #fff; /* inner white dot */
-        border-radius: 50%;
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-      }
-
-      .radio-item label {
-        font-size: 0.875rem; /* text-sm */
-        color: #374151; /* text-gray-800 */
-        cursor: pointer;
-      }
-
-      /* Slider */
       .slider {
         width: 100%;
-        -webkit-appearance: none; /* Override default look */
-        appearance: none;
-        height: 0.5rem; /* h-2 */
-        background: #d1d5db; /* bg-gray-300 */
-        border-radius: 0.25rem; /* rounded-full */
+            height: 6px;
+            border-radius: 3px;
+            background: #e2e8f0;
         outline: none;
-        opacity: 0.7;
-        transition: opacity 0.2s;
-      }
-
-      .slider:hover {
-        opacity: 1;
+            -webkit-appearance: none;
       }
 
       .slider::-webkit-slider-thumb {
         -webkit-appearance: none;
-        appearance: none;
-        width: 1rem; /* w-4 */
-        height: 1rem; /* h-4 */
-        background: #000; /* bg-black */
+            width: 20px;
+            height: 20px;
         border-radius: 50%;
-        cursor: grab;
-        transition: transform 0.1s;
+            background: #667eea;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
       }
 
       .slider::-moz-range-thumb {
-        width: 1rem; /* w-4 */
-        height: 1rem; /* h-4 */
-        background: #000; /* bg-black */
+            width: 20px;
+            height: 20px;
         border-radius: 50%;
-        cursor: grab;
-        transition: transform 0.1s;
-      }
+            background: #667eea;
+            cursor: pointer;
+        border: none;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
 
-      .slider:focus-visible::-webkit-slider-thumb {
-        transform: scale(1.05); /* scale-105 */
-      }
+        .slider-value {
+            position: absolute;
+            right: 0;
+            top: -25px;
+            font-size: 0.8rem;
+            color: #64748b;
+            font-weight: 500;
+        }
 
-      .slider:focus-visible::-moz-range-thumb {
-        transform: scale(1.05); /* scale-105 */
-      }
+        .error-message {
+            background: #fef2f2;
+            color: #dc2626;
+            padding: 0.75rem;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            margin-bottom: 1rem;
+            border: 1px solid #fecaca;
+        }
 
-      /* Hidden utility class */
+        .processing-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255, 255, 255, 0.9);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 12px;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid #e2e8f0;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .drag-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(102, 126, 234, 0.1);
+            border: 3px dashed #667eea;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            pointer-events: none;
+        }
+
+        .drag-overlay-content {
+            background: white;
+            padding: 2rem;
+            border-radius: 16px;
+            text-align: center;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+        }
+
+        .drag-overlay-content svg {
+            width: 3rem;
+            height: 3rem;
+            margin-bottom: 1rem;
+            color: #667eea;
+        }
+
       .hidden {
         display: none !important;
       }
 
-      /* Screen reader only */
       .sr-only {
         position: absolute;
         width: 1px;
@@ -323,215 +348,162 @@
         overflow: hidden;
         clip: rect(0, 0, 0, 0);
         white-space: nowrap;
-        border-width: 0;
-      }
-
-      /* Loader for processing */
-      .processing-overlay {
-        position: absolute;
-        inset: 0;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background-color: rgba(0, 0, 0, 0.3); /* bg-black/30 */
-        border-radius: 0.75rem; /* rounded-xl */
-      }
-
-      .loader {
-        border: 4px solid #f3f3f3; /* Light grey */
-        border-top: 4px solid #fff; /* White */
-        border-radius: 50%;
-        width: 3rem; /* h-12 w-12 */
-        height: 3rem;
-        animation: spin 1s linear infinite;
-      }
-
-      @keyframes spin {
-        0% {
-          transform: rotate(0deg);
+            border: 0;
         }
-        100% {
-          transform: rotate(360deg);
+
+        @media (max-width: 767px) {
+            .container {
+                padding: 0.5rem;
+            }
+
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .main-content {
+                gap: 1rem;
+            }
+
+            .image-section,
+            .controls-section {
+                padding: 1rem;
+            }
+
+            .btn-group {
+                flex-direction: column;
+            }
+
+            .btn-group .btn {
+                min-width: auto;
         }
       }
     </style>
   </head>
   <body>
-    <div class="app-container">
-      <!-- Main content area with liquid glass effect -->
-      <div class="main-card">
-        <div id="canvas-container" class="canvas-container">
-          <canvas id="imageCanvas"></canvas>
-          <div id="processingOverlay" class="processing-overlay hidden">
-            <div class="loader"></div>
-          </div>
-        </div>
+    <div class="container">
+        <header class="header">
+            <h1>Face Blur Tool</h1>
+            <p>Protect privacy with AI-powered face detection and blurring</p>
+        </header>
 
+        <div class="main-content">
+            <div class="image-section">
+                <div id="imageContainer" class="image-container">
+                    <canvas id="imageCanvas" class="hidden"></canvas>
         <div id="placeholder" class="placeholder">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="96"
-            height="96"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="1.5"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            class="lucide lucide-upload"
-          >
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-            <polyline points="17 8 12 3 7 8" />
-            <line x1="12" x2="12" y1="3" y2="15" />
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                            <polyline points="17 8 12 3 7 8"/>
+                            <line x1="12" x2="12" y1="3" y2="15"/>
           </svg>
-          <p class="placeholder-title">Upload or paste an image to start blurring faces</p>
-          <p class="placeholder-subtitle">Supports JPG, PNG, WebP, and more.</p>
+                        <h3>Drop an image here</h3>
+                        <p>Drag & drop, paste, or click to upload</p>
         </div>
-
-        <!-- Control Panel - Liquid Glass Style -->
-        <div class="control-panel">
-          <div id="errorDisplay" class="error-message hidden" role="alert">
-            <span id="errorMessageText"></span>
+                    <div id="processingOverlay" class="processing-overlay hidden">
+                        <div class="spinner"></div>
+                    </div>
+                </div>
           </div>
 
-          <!-- Image Upload/Change & Reset -->
-          <div class="button-group">
-            <label for="imageUpload" class="sr-only">Upload Image</label>
-            <input id="imageUpload" type="file" accept="image/*" class="hidden" />
-            <button id="uploadImageBtn" class="button primary">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                class="lucide lucide-upload"
-              >
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                <polyline points="17 8 12 3 7 8" />
-                <line x1="12" x2="12" y1="3" y2="15" />
+            <div class="controls-section">
+                <div id="errorDisplay" class="error-message hidden"></div>
+
+                <div class="control-group">
+                    <label class="control-label">Upload Image</label>
+                    <div class="btn-group">
+                        <input id="imageUpload" type="file" accept="image/*" class="hidden">
+                        <button id="uploadBtn" class="btn btn-primary">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                <polyline points="17 8 12 3 7 8"/>
+                                <line x1="12" x2="12" y1="3" y2="15"/>
               </svg>
-              <span id="uploadButtonText">Upload Image</span>
+                            Upload Image
             </button>
-            <button id="resetBtn" class="button outline">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                class="lucide lucide-eraser"
-              >
-                <path d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.4-9.4c1-1 2.5-1 3.4 0L21 3" />
-                <path d="M22 21 15 14" />
-                <path d="M14 15 21 22" />
+                        <button id="resetBtn" class="btn btn-secondary">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
+                                <path d="M21 3v5h-5"/>
+                                <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
+                                <path d="M3 21v-5h5"/>
               </svg>
               Reset
             </button>
+                    </div>
           </div>
 
-          <!-- Blur Type Selection -->
           <div class="control-group">
             <label class="control-label">Blur Type</label>
             <div class="radio-group">
               <div class="radio-item">
-                <input type="radio" id="gaussian" name="blurType" value="gaussian" />
+                            <input type="radio" id="gaussian" name="blurType" value="gaussian">
                 <label for="gaussian">Gaussian</label>
               </div>
               <div class="radio-item">
-                <input type="radio" id="pixelate" name="blurType" value="pixelate" checked />
+                            <input type="radio" id="pixelate" name="blurType" value="pixelate" checked>
                 <label for="pixelate">Pixelate</label>
               </div>
             </div>
           </div>
 
-          <!-- Blur Intensity Slider -->
           <div class="control-group">
-            <label for="blurSlider" class="control-label">
-              Blur Intensity: <span id="blurValue">20</span>px
-            </label>
-            <input type="range" id="blurSlider" min="0" max="50" value="20" step="1" class="slider" />
+                    <label class="control-label">Blur Intensity</label>
+                    <div class="slider-container">
+                        <input type="range" id="blurSlider" min="0" max="50" value="20" step="1" class="slider">
+                        <span class="slider-value" id="blurValue">20px</span>
+                    </div>
           </div>
 
-          <!-- Tool Mode Selection -->
           <div class="control-group">
-            <label class="control-label">Blur Mode</label>
-            <div class="button-group">
-              <button id="autoFaceBlurBtn" class="button primary">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="20"
-                  height="20"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  class="lucide lucide-scan-face"
-                >
-                  <path d="M3 7V5a2 2 0 0 1 2-2h2" />
-                  <path d="M17 3h2a2 2 0 0 1 2 2v2" />
-                  <path d="M21 17v2a2 2 0 0 1-2 2h-2" />
-                  <path d="M7 21H5a2 2 0 0 1-2-2v-2" />
-                  <path d="M8 14s1.5 2 4 2 4-2 4-2" />
-                  <circle cx="12" cy="10" r="2" />
+                    <label class="control-label">Detection Mode</label>
+                    <div class="btn-group">
+                        <button id="autoDetectBtn" class="btn btn-primary">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M3 7V5a2 2 0 0 1 2-2h2"/>
+                                <path d="M17 3h2a2 2 0 0 1 2 2v2"/>
+                                <path d="M21 17v2a2 2 0 0 1-2 2h-2"/>
+                                <path d="M7 21H5a2 2 0 0 1-2-2v-2"/>
+                                <path d="M8 14s1.5 2 4 2 4-2 4-2"/>
+                                <circle cx="12" cy="10" r="2"/>
                 </svg>
-                Auto Detect Faces
+                            Auto Detect
               </button>
-              <button id="manualSelectBlurBtn" class="button outline">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="20"
-                  height="20"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  class="lucide lucide-mouse-pointer-2"
-                >
-                  <path d="m4 4 7.07 17 2.51-7.31L17 11.07 4 4z" />
-                  <path d="m13 13 6 6" />
+                        <button id="manualSelectBtn" class="btn btn-secondary">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="m4 4 7.07 17 2.51-7.31L17 11.07 4 4z"/>
+                                <path d="m13 13 6 6"/>
                 </svg>
                 Manual Select
               </button>
             </div>
           </div>
 
-          <!-- Manual Mode Controls -->
-          <button id="clearManualAreasBtn" class="button destructive hidden">
-            Clear Manual Selections
+                <div class="control-group">
+                    <button id="clearManualBtn" class="btn btn-danger hidden">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M3 6h18"/>
+                            <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
+                            <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
+                        </svg>
+                        Clear Selections
           </button>
+                </div>
 
-          <!-- Apply Blur & Download -->
-          <div class="button-group">
-            <button id="applyBlurBtn" class="button primary">Apply Blur</button>
-            <button id="downloadBtn" class="button outline">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                class="lucide lucide-download"
-              >
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                <polyline points="7 10 12 15 17 10" />
-                <line x1="12" x2="12" y1="15" y2="3" />
+                <div class="control-group">
+                    <div class="btn-group">
+                        <button id="applyBlurBtn" class="btn btn-primary">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="3"/>
+                                <path d="M12 1v6m0 6v6"/>
+                                <path d="m21 12-6 0m-6 0-6 0"/>
+                            </svg>
+                            Apply Blur
+                        </button>
+                        <button id="downloadBtn" class="btn btn-secondary">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                <polyline points="7 10 12 15 17 10"/>
+                                <line x1="12" x2="12" y1="15" y2="3"/>
               </svg>
               Download
             </button>
@@ -539,457 +511,519 @@
         </div>
       </div>
     </div>
+    </div>
+
+    <!-- Drag Overlay -->
+    <div id="dragOverlay" class="drag-overlay hidden">
+        <div class="drag-overlay-content">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="17 8 12 3 7 8"/>
+                <line x1="12" x2="12" y1="3" y2="15"/>
+            </svg>
+            <div>Drop image here to blur faces</div>
+        </div>
+    </div>
+
     <script>
       document.addEventListener("DOMContentLoaded", () => {
-        const imageCanvas = document.getElementById("imageCanvas")
-        const ctx = imageCanvas.getContext("2d")
-        const uploadImageBtn = document.getElementById("uploadImageBtn")
-        const uploadButtonText = document.getElementById("uploadButtonText")
-        const imageUploadInput = document.getElementById("imageUpload")
-        const resetBtn = document.getElementById("resetBtn")
-        const blurSlider = document.getElementById("blurSlider")
-        const blurValueSpan = document.getElementById("blurValue")
-        const applyBlurBtn = document.getElementById("applyBlurBtn")
-        const downloadBtn = document.getElementById("downloadBtn")
-        const placeholder = document.getElementById("placeholder")
-        const canvasContainer = document.getElementById("canvas-container")
-        const processingOverlay = document.getElementById("processingOverlay")
-        const errorDisplay = document.getElementById("errorDisplay")
-        const errorMessageText = document.getElementById("errorMessageText")
+            // Elements
+            const imageCanvas = document.getElementById("imageCanvas");
+            const ctx = imageCanvas.getContext("2d");
+            const imageContainer = document.getElementById("imageContainer");
+            const placeholder = document.getElementById("placeholder");
+            const processingOverlay = document.getElementById("processingOverlay");
+            const dragOverlay = document.getElementById("dragOverlay");
+            const errorDisplay = document.getElementById("errorDisplay");
 
-        const gaussianRadio = document.getElementById("gaussian")
-        const pixelateRadio = document.getElementById("pixelate")
+            // Controls
+            const imageUpload = document.getElementById("imageUpload");
+            const uploadBtn = document.getElementById("uploadBtn");
+            const resetBtn = document.getElementById("resetBtn");
+            const blurSlider = document.getElementById("blurSlider");
+            const blurValue = document.getElementById("blurValue");
+            const gaussianRadio = document.getElementById("gaussian");
+            const pixelateRadio = document.getElementById("pixelate");
+            const autoDetectBtn = document.getElementById("autoDetectBtn");
+            const manualSelectBtn = document.getElementById("manualSelectBtn");
+            const clearManualBtn = document.getElementById("clearManualBtn");
+            const applyBlurBtn = document.getElementById("applyBlurBtn");
+            const downloadBtn = document.getElementById("downloadBtn");
 
-        const autoFaceBlurBtn = document.getElementById("autoFaceBlurBtn")
-        const manualSelectBlurBtn = document.getElementById("manualSelectBlurBtn")
-        const clearManualAreasBtn = document.getElementById("clearManualAreasBtn")
+            // State
+            let originalImage = null;
+            let blurRadius = parseInt(blurSlider.value);
+            let faces = [];
+            let manualBlurAreas = [];
+            let isLoadingModels = true;
+            let isProcessing = false;
+            let blurType = "pixelate";
+            let toolMode = "auto-detect";
 
-        let originalImage = null
-        let blurRadius = Number.parseInt(blurSlider.value)
-        let faces = []
-        let isLoadingModels = true
-        let isProcessing = false
-        let blurType = pixelateRadio.checked ? "pixelate" : "gaussian" // Default from HTML
-        let toolMode = "auto-face-blur" // Default mode
+            // Manual selection
+            let isDrawing = false;
+            let startPoint = null;
+            let currentRect = null;
 
-        // Manual selection variables
-        let isDrawing = false
-        let startPoint = null
-        let currentRect = null
-        let manualBlurAreas = []
+            const faceapi = window.faceapi;
 
-        // Face API library
-        const faceapi = window.faceapi
-
-        // --- UI State Management ---
+            // UI State Management
         function updateUIState() {
-          const hasImage = originalImage !== null
-          const hasFacesOrManualAreas = faces.length > 0 || manualBlurAreas.length > 0
+                const hasImage = originalImage !== null;
+                const hasFacesOrManualAreas = faces.length > 0 || manualBlurAreas.length > 0;
 
-          // General buttons
-          uploadImageBtn.disabled = isLoadingModels || isProcessing
-          resetBtn.disabled = !hasImage || isProcessing
-          downloadBtn.disabled = !hasImage || isProcessing
-
-          // Blur type radios
-          gaussianRadio.disabled = !hasImage || isProcessing
-          pixelateRadio.disabled = !hasImage || isProcessing
-
-          // Blur slider
-          blurSlider.disabled = !hasImage || isProcessing || !hasFacesOrManualAreas
+                // Button states
+                uploadBtn.disabled = isLoadingModels || isProcessing;
+                resetBtn.disabled = !hasImage || isProcessing;
+                downloadBtn.disabled = !hasImage || isProcessing;
+                applyBlurBtn.disabled = !hasImage || isProcessing || !hasFacesOrManualAreas;
+                autoDetectBtn.disabled = !hasImage || isProcessing;
+                manualSelectBtn.disabled = !hasImage || isProcessing;
+                blurSlider.disabled = !hasImage || isProcessing || !hasFacesOrManualAreas;
 
           // Mode buttons
-          autoFaceBlurBtn.disabled = !hasImage || isProcessing
-          manualSelectBlurBtn.disabled = !hasImage || isProcessing
-
-          // Apply Blur button
-          applyBlurBtn.disabled = !hasImage || isProcessing || !hasFacesOrManualAreas
-
-          // Clear manual areas button
-          if (toolMode === "manual-select-blur" && manualBlurAreas.length > 0) {
-            clearManualAreasBtn.classList.remove("hidden")
-            clearManualAreasBtn.disabled = isProcessing
+                if (toolMode === "auto-detect") {
+                    autoDetectBtn.classList.remove("btn-secondary");
+                    autoDetectBtn.classList.add("btn-primary");
+                    manualSelectBtn.classList.remove("btn-primary");
+                    manualSelectBtn.classList.add("btn-secondary");
           } else {
-            clearManualAreasBtn.classList.add("hidden")
-          }
+                    autoDetectBtn.classList.remove("btn-primary");
+                    autoDetectBtn.classList.add("btn-secondary");
+                    manualSelectBtn.classList.remove("btn-secondary");
+                    manualSelectBtn.classList.add("btn-primary");
+                }
 
-          // Placeholder vs Canvas
-          if (hasImage) {
-            placeholder.classList.add("hidden")
-            canvasContainer.classList.remove("hidden")
+                // Clear manual button
+                if (toolMode === "manual-select" && manualBlurAreas.length > 0) {
+                    clearManualBtn.classList.remove("hidden");
+                    clearManualBtn.disabled = isProcessing;
           } else {
-            placeholder.classList.remove("hidden")
-            canvasContainer.classList.add("hidden")
+                    clearManualBtn.classList.add("hidden");
           }
 
           // Processing overlay
           if (isProcessing) {
-            processingOverlay.classList.remove("hidden")
+                    processingOverlay.classList.remove("hidden");
           } else {
-            processingOverlay.classList.add("hidden")
+                    processingOverlay.classList.add("hidden");
           }
 
           // Upload button text
-          uploadButtonText.textContent = hasImage ? "Change Image" : "Upload Image"
+                uploadBtn.innerHTML = hasImage ? 
+                    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>Change Image' :
+                    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>Upload Image';
+            }
 
-          // Mode button styling
-          if (toolMode === "auto-face-blur") {
-            autoFaceBlurBtn.classList.add("primary")
-            autoFaceBlurBtn.classList.remove("outline")
-            manualSelectBlurBtn.classList.add("outline")
-            manualSelectBlurBtn.classList.remove("primary")
-          } else {
-            autoFaceBlurBtn.classList.add("primary")
-            autoFaceBlurBtn.classList.remove("outline")
-            manualSelectBlurBtn.classList.add("outline")
-            manualSelectBlurBtn.classList.remove("primary")
-          }
-        }
-
-        function displayError(message) {
-          errorMessageText.textContent = message
-          errorDisplay.classList.remove("hidden")
+            function showError(message) {
+                errorDisplay.textContent = message;
+                errorDisplay.classList.remove("hidden");
         }
 
         function clearError() {
-          errorDisplay.classList.add("hidden")
-          errorMessageText.textContent = ""
+                errorDisplay.classList.add("hidden");
         }
 
-        // --- Face API Models Loading ---
+            // Load Face API models
         async function loadModels() {
-          isLoadingModels = true
-          isProcessing = true
-          clearError()
-          updateUIState()
-          try {
-            const MODEL_PATH = "https://raw.githubusercontent.com/justadudewhohacks/face-api.js/master/weights"
+                isLoadingModels = true;
+                isProcessing = true;
+                clearError();
+                updateUIState();
+
+                try {
+                    const MODEL_PATH = "https://raw.githubusercontent.com/justadudewhohacks/face-api.js/master/weights";
             await Promise.all([
               faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_PATH),
               faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_PATH),
-            ])
-            isLoadingModels = false
+                    ]);
+                    isLoadingModels = false;
           } catch (err) {
-            console.error("Failed to load face-api models:", err)
-            displayError("Failed to load face detection models. Please check your network connection or model paths.")
-            isLoadingModels = false
+                    console.error("Failed to load face-api models:", err);
+                    showError("Failed to load face detection models. Please check your network connection.");
+                    isLoadingModels = false;
           } finally {
-            isProcessing = false
-            updateUIState()
+                    isProcessing = false;
+                    updateUIState();
           }
         }
 
-        // --- Face Detection ---
+            // Face detection
         async function detectFaces(img) {
-          if (!img || isLoadingModels) return []
-          isProcessing = true
-          clearError()
-          updateUIState()
-          try {
-            const detections = await faceapi.detectAllFaces(img, new faceapi.SsdMobilenetv1Options())
-            return detections
+                if (!img || isLoadingModels) return [];
+                isProcessing = true;
+                clearError();
+                updateUIState();
+
+                try {
+                    const detections = await faceapi.detectAllFaces(img, new faceapi.SsdMobilenetv1Options());
+                    return detections;
           } catch (err) {
-            console.error("Face detection failed:", err)
-            displayError("Face detection failed. Ensure the image is clear and models are loaded.")
-            return []
+                    console.error("Face detection failed:", err);
+                    showError("Face detection failed. Ensure the image is clear and models are loaded.");
+                    return [];
           } finally {
-            isProcessing = false
-            updateUIState()
+                    isProcessing = false;
+                    updateUIState();
           }
         }
 
-        // --- Canvas Drawing and Blur Application ---
+            // Canvas drawing
         function drawCanvasContent() {
           if (!originalImage) {
-            ctx.clearRect(0, 0, imageCanvas.width, imageCanvas.height)
-            imageCanvas.width = 0
-            imageCanvas.height = 0
-            return
-          }
+                    ctx.clearRect(0, 0, imageCanvas.width, imageCanvas.height);
+                    imageCanvas.width = 0;
+                    imageCanvas.height = 0;
+                    return;
+                }
 
-          imageCanvas.width = originalImage.naturalWidth
-          imageCanvas.height = originalImage.naturalHeight
+                imageCanvas.width = originalImage.naturalWidth;
+                imageCanvas.height = originalImage.naturalHeight;
 
-          ctx.clearRect(0, 0, imageCanvas.width, imageCanvas.height)
-          ctx.drawImage(originalImage, 0, 0, imageCanvas.width, imageCanvas.height)
+                ctx.clearRect(0, 0, imageCanvas.width, imageCanvas.height);
+                ctx.drawImage(originalImage, 0, 0, imageCanvas.width, imageCanvas.height);
 
-          const regionsToBlur = toolMode === "auto-face-blur" ? faces.map((d) => d.box) : manualBlurAreas
+                const regionsToBlur = toolMode === "auto-detect" ? faces.map(d => d.box) : manualBlurAreas;
 
-          regionsToBlur.forEach((box) => {
-            const x = box.x
-            const y = box.y
-            const width = box.width
-            const height = box.height
+                regionsToBlur.forEach(box => {
+                    const x = Math.max(0, box.x);
+                    const y = Math.max(0, box.y);
+                    const width = Math.min(box.width, imageCanvas.width - x);
+                    const height = Math.min(box.height, imageCanvas.height - y);
 
-            const clampedX = Math.max(0, x)
-            const clampedY = Math.max(0, y)
-            const clampedWidth = Math.min(width, imageCanvas.width - clampedX)
-            const clampedHeight = Math.min(height, imageCanvas.height - clampedY)
+                    if (width <= 0 || height <= 0) return;
 
-            if (clampedWidth <= 0 || clampedHeight <= 0) return
-
-            const imageData = ctx.getImageData(clampedX, clampedY, clampedWidth, clampedHeight)
-
-            const tempCanvas = document.createElement("canvas")
-            tempCanvas.width = clampedWidth
-            tempCanvas.height = clampedHeight
-            const tempCtx = tempCanvas.getContext("2d")
-            if (!tempCtx) return
-
-            tempCtx.putImageData(imageData, 0, 0)
+                    const imageData = ctx.getImageData(x, y, width, height);
+                    const tempCanvas = document.createElement("canvas");
+                    tempCanvas.width = width;
+                    tempCanvas.height = height;
+                    const tempCtx = tempCanvas.getContext("2d");
+                    tempCtx.putImageData(imageData, 0, 0);
 
             if (blurType === "gaussian") {
-              tempCtx.filter = `blur(${blurRadius}px)`
-              tempCtx.drawImage(tempCanvas, 0, 0)
+                        tempCtx.filter = `blur(${blurRadius}px)`;
+                        tempCtx.drawImage(tempCanvas, 0, 0);
             } else if (blurType === "pixelate") {
-              const pixelSize = Math.max(1, Math.floor(blurRadius / 2))
-              const smallWidth = Math.ceil(clampedWidth / pixelSize)
-              const smallHeight = Math.ceil(clampedHeight / pixelSize)
+                        const pixelSize = Math.max(1, Math.floor(blurRadius / 2));
+                        const smallWidth = Math.ceil(width / pixelSize);
+                        const smallHeight = Math.ceil(height / pixelSize);
 
-              tempCtx.imageSmoothingEnabled = false
-              tempCtx.drawImage(tempCanvas, 0, 0, smallWidth, smallHeight)
-              tempCtx.drawImage(tempCanvas, 0, 0, smallWidth, smallHeight, 0, 0, clampedWidth, clampedHeight)
+                        tempCtx.imageSmoothingEnabled = false;
+                        tempCtx.drawImage(tempCanvas, 0, 0, smallWidth, smallHeight);
+                        tempCtx.drawImage(tempCanvas, 0, 0, smallWidth, smallHeight, 0, 0, width, height);
+                    }
+
+                    ctx.drawImage(tempCanvas, x, y, width, height);
+                });
+
+                // Draw current drawing rectangle
+                if (isDrawing && currentRect && toolMode === "manual-select") {
+                    ctx.strokeStyle = "rgba(102, 126, 234, 0.8)";
+                    ctx.lineWidth = 2;
+                    ctx.setLineDash([5, 5]);
+                    ctx.strokeRect(currentRect.x, currentRect.y, currentRect.width, currentRect.height);
+                    ctx.setLineDash([]);
+                }
             }
 
-            ctx.drawImage(tempCanvas, clampedX, clampedY, clampedWidth, clampedHeight)
-          })
-
-          // Draw current drawing rectangle in manual mode
-          if (isDrawing && currentRect && toolMode === "manual-select-blur") {
-            ctx.strokeStyle = "rgba(255, 255, 255, 0.8)"
-            ctx.lineWidth = 2
-            ctx.setLineDash([5, 5])
-            ctx.strokeRect(currentRect.x, currentRect.y, currentRect.width, currentRect.height)
-            ctx.setLineDash([])
-          }
-        }
-
-        // --- Image Loading ---
+            // Image loading
         async function loadImage(dataUrl) {
-          clearError()
-          isProcessing = true
-          updateUIState()
+                clearError();
+                isProcessing = true;
+                updateUIState();
 
-          const img = new Image()
-          img.crossOrigin = "anonymous"
+                const img = new Image();
+                img.crossOrigin = "anonymous";
           img.onload = async () => {
-            originalImage = img
-            manualBlurAreas = [] // Clear manual areas on new image
-            if (toolMode === "auto-face-blur") {
-              faces = await detectFaces(img)
+                    originalImage = img;
+                    manualBlurAreas = [];
+                    if (toolMode === "auto-detect") {
+                        faces = await detectFaces(img);
             } else {
-              faces = [] // No auto-detection in manual mode
-            }
-            drawCanvasContent()
-            isProcessing = false
-            updateUIState()
-          }
+                        faces = [];
+                    }
+                    drawCanvasContent();
+                    isProcessing = false;
+                    updateUIState();
+                };
           img.onerror = () => {
-            displayError("Could not load image. Please ensure it's a valid image file.")
-            originalImage = null
-            faces = []
-            manualBlurAreas = []
-            isProcessing = false
-            updateUIState()
-            drawCanvasContent() // Clear canvas
-          }
-          img.src = dataUrl
-        }
+                    showError("Could not load image. Please ensure it's a valid image file.");
+                    originalImage = null;
+                    faces = [];
+                    manualBlurAreas = [];
+                    isProcessing = false;
+                    updateUIState();
+                };
+                img.src = dataUrl;
+            }
 
-        // --- Event Listeners ---
+            // URL validation and loading
+            function isValidImageUrl(url) {
+                try {
+                    const urlObj = new URL(url);
+                    const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.svg'];
+                    const pathname = urlObj.pathname.toLowerCase();
+                    return imageExtensions.some(ext => pathname.endsWith(ext)) || 
+                           url.includes('unsplash.com') || 
+                           url.includes('imgur.com') ||
+                           url.includes('github.com') ||
+                           url.includes('raw.githubusercontent.com');
+                } catch {
+                    return false;
+                }
+            }
 
-        // File Upload
-        imageUploadInput.addEventListener("change", (event) => {
-          const file = event.target.files?.[0]
+            async function loadImageFromUrl(url) {
+                clearError();
+                isProcessing = true;
+                updateUIState();
+                
+                try {
+                    const response = await fetch(url);
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
+                    const blob = await response.blob();
+                    const reader = new FileReader();
+                    reader.onloadend = () => loadImage(reader.result);
+                    reader.readAsDataURL(blob);
+                } catch (error) {
+                    console.error('Failed to load image from URL:', error);
+                    showError(`Failed to load image from URL: ${error.message}`);
+                    isProcessing = false;
+                    updateUIState();
+                }
+            }
+
+            // Event Listeners
+            uploadBtn.addEventListener("click", () => imageUpload.click());
+
+            imageUpload.addEventListener("change", (event) => {
+                const file = event.target.files?.[0];
           if (file) {
-            const reader = new FileReader()
-            reader.onloadend = () => loadImage(reader.result)
-            reader.readAsDataURL(file)
-          }
-        })
+                    const reader = new FileReader();
+                    reader.onloadend = () => loadImage(reader.result);
+                    reader.readAsDataURL(file);
+                }
+            });
 
-        uploadImageBtn.addEventListener("click", () => {
-          imageUploadInput.click()
-        })
+            // Global drag and drop
+            document.addEventListener("dragover", (event) => {
+                event.preventDefault();
+                event.dataTransfer.dropEffect = "copy";
+            });
 
-        // Paste Image
+            document.addEventListener("dragenter", (event) => {
+                event.preventDefault();
+                if (event.dataTransfer.types.includes('Files')) {
+                    dragOverlay.classList.remove("hidden");
+                }
+            });
+
+            document.addEventListener("dragleave", (event) => {
+                if (!document.contains(event.relatedTarget)) {
+                    dragOverlay.classList.add("hidden");
+                }
+            });
+
+            document.addEventListener("drop", (event) => {
+                event.preventDefault();
+                dragOverlay.classList.add("hidden");
+                const files = event.dataTransfer.files;
+                if (files.length > 0) {
+                    const file = files[0];
+                    if (file.type.startsWith('image/')) {
+                        const reader = new FileReader();
+                        reader.onloadend = () => loadImage(reader.result);
+                        reader.readAsDataURL(file);
+                    } else {
+                        showError("Please drop an image file.");
+                    }
+                }
+            });
+
+            // Paste functionality
         document.addEventListener("paste", (event) => {
-          const items = event.clipboardData?.items
+                const items = event.clipboardData?.items;
+                const text = event.clipboardData?.getData('text');
+                
           if (items) {
             for (let i = 0; i < items.length; i++) {
               if (items[i].type.indexOf("image") !== -1) {
-                const blob = items[i].getAsFile()
+                            const blob = items[i].getAsFile();
                 if (blob) {
-                  const reader = new FileReader()
-                  reader.onloadend = () => loadImage(reader.result)
-                  reader.readAsDataURL(blob)
-                  event.preventDefault() // Prevent default paste behavior
-                  return
+                                const reader = new FileReader();
+                                reader.onloadend = () => loadImage(reader.result);
+                                reader.readAsDataURL(blob);
+                                event.preventDefault();
+                                return;
+                            }
+                        }
+                    }
                 }
-              }
-            }
-          }
-        })
+                
+                if (text && isValidImageUrl(text)) {
+                    loadImageFromUrl(text);
+                    event.preventDefault();
+                }
+            });
 
-        // Reset Button
+            // Reset button
         resetBtn.addEventListener("click", () => {
-          originalImage = null
-          faces = []
-          blurRadius = 20
-          blurSlider.value = 20
-          blurValueSpan.textContent = 20
-          blurType = "pixelate"
-          pixelateRadio.checked = true
-          toolMode = "auto-face-blur"
-          isDrawing = false
-          startPoint = null
-          currentRect = null
-          manualBlurAreas = []
-          clearError()
-          drawCanvasContent() // Clear canvas
-          updateUIState()
-        })
+                originalImage = null;
+                faces = [];
+                manualBlurAreas = [];
+                blurRadius = 20;
+                blurSlider.value = 20;
+                blurValue.textContent = "20px";
+                blurType = "pixelate";
+                pixelateRadio.checked = true;
+                toolMode = "auto-detect";
+                isDrawing = false;
+                startPoint = null;
+                currentRect = null;
+                clearError();
+                drawCanvasContent();
+                updateUIState();
+            });
 
-        // Blur Slider
+            // Blur slider
         blurSlider.addEventListener("input", (event) => {
-          blurRadius = Number.parseInt(event.target.value)
-          blurValueSpan.textContent = blurRadius
-          drawCanvasContent() // Apply blur immediately on slider change
-        })
+                blurRadius = parseInt(event.target.value);
+                blurValue.textContent = blurRadius + "px";
+                drawCanvasContent();
+            });
 
-        // Blur Type Radio Group
+            // Blur type radios
         gaussianRadio.addEventListener("change", (event) => {
           if (event.target.checked) {
-            blurType = "gaussian"
-            blurSlider.max = 100 // Max for Gaussian
+                    blurType = "gaussian";
+                    blurSlider.max = 100;
             if (blurRadius > 100) {
-              blurRadius = 100
-              blurSlider.value = 100
-              blurValueSpan.textContent = 100
-            }
-            drawCanvasContent()
-          }
-        })
+                        blurRadius = 100;
+                        blurSlider.value = 100;
+                        blurValue.textContent = "100px";
+                    }
+                    drawCanvasContent();
+                }
+            });
 
         pixelateRadio.addEventListener("change", (event) => {
           if (event.target.checked) {
-            blurType = "pixelate"
-            blurSlider.max = 50 // Max for Pixelate
+                    blurType = "pixelate";
+                    blurSlider.max = 50;
             if (blurRadius > 50) {
-              blurRadius = 50
-              blurSlider.value = 50
-              blurValueSpan.textContent = 50
-            }
-            drawCanvasContent()
-          }
-        })
+                        blurRadius = 50;
+                        blurSlider.value = 50;
+                        blurValue.textContent = "50px";
+                    }
+                    drawCanvasContent();
+                }
+            });
 
-        // Apply Blur Button (now just re-draws with current settings)
+            // Mode buttons
+            autoDetectBtn.addEventListener("click", async () => {
+                if (toolMode === "auto-detect") return;
+                toolMode = "auto-detect";
+                manualBlurAreas = [];
+                if (originalImage) {
+                    faces = await detectFaces(originalImage);
+                }
+                drawCanvasContent();
+                updateUIState();
+            });
+
+            manualSelectBtn.addEventListener("click", () => {
+                if (toolMode === "manual-select") return;
+                toolMode = "manual-select";
+                faces = [];
+                drawCanvasContent();
+                updateUIState();
+            });
+
+            // Clear manual selections
+            clearManualBtn.addEventListener("click", () => {
+                manualBlurAreas = [];
+                currentRect = null;
+                isDrawing = false;
+                drawCanvasContent();
+                updateUIState();
+            });
+
+            // Apply blur
         applyBlurBtn.addEventListener("click", () => {
           if (originalImage) {
-            drawCanvasContent()
+                    drawCanvasContent();
           } else {
-            displayError("No image loaded to apply blur.")
+                    showError("No image loaded to apply blur.");
           }
-        })
+            });
 
-        // Download Button
+            // Download
         downloadBtn.addEventListener("click", () => {
           if (imageCanvas && originalImage) {
-            const link = document.createElement("a")
-            link.download = "blurred-image.png"
-            link.href = imageCanvas.toDataURL("image/png")
-            link.click()
-          }
-        })
+                    const link = document.createElement("a");
+                    link.download = "blurred-image.png";
+                    link.href = imageCanvas.toDataURL("image/png");
+                    link.click();
+                }
+            });
 
-        // --- Manual Selection Logic ---
+            // Manual selection on canvas
         function getCanvasCoordinates(event) {
-          const rect = imageCanvas.getBoundingClientRect()
-          const scaleX = imageCanvas.width / rect.width
-          const scaleY = imageCanvas.height / rect.height
-
+                const rect = imageCanvas.getBoundingClientRect();
+                const scaleX = imageCanvas.width / rect.width;
+                const scaleY = imageCanvas.height / rect.height;
           return {
             x: (event.clientX - rect.left) * scaleX,
             y: (event.clientY - rect.top) * scaleY,
-          }
+                };
         }
 
         imageCanvas.addEventListener("mousedown", (event) => {
-          if (toolMode !== "manual-select-blur" || !originalImage) return
-          isDrawing = true
-          startPoint = getCanvasCoordinates(event)
-          currentRect = null // Clear previous temporary rect
-        })
+                if (toolMode !== "manual-select" || !originalImage) return;
+                isDrawing = true;
+                startPoint = getCanvasCoordinates(event);
+                currentRect = null;
+            });
 
         imageCanvas.addEventListener("mousemove", (event) => {
-          if (!isDrawing || !startPoint || !originalImage) return
-
-          const currentPoint = getCanvasCoordinates(event)
-          const x = Math.min(startPoint.x, currentPoint.x)
-          const y = Math.min(startPoint.y, currentPoint.y)
-          const width = Math.abs(startPoint.x - currentPoint.x)
-          const height = Math.abs(startPoint.y - currentPoint.y)
-
-          currentRect = { x, y, width, height }
-          drawCanvasContent() // Redraw to show the rectangle
-        })
+                if (!isDrawing || !startPoint || !originalImage) return;
+                const currentPoint = getCanvasCoordinates(event);
+                const x = Math.min(startPoint.x, currentPoint.x);
+                const y = Math.min(startPoint.y, currentPoint.y);
+                const width = Math.abs(startPoint.x - currentPoint.x);
+                const height = Math.abs(startPoint.y - currentPoint.y);
+                currentRect = { x, y, width, height };
+                drawCanvasContent();
+            });
 
         imageCanvas.addEventListener("mouseup", () => {
-          if (!isDrawing || !currentRect || !originalImage) return
-          isDrawing = false
-          startPoint = null
+                if (!isDrawing || !currentRect || !originalImage) return;
+                isDrawing = false;
+                startPoint = null;
           if (currentRect.width > 0 && currentRect.height > 0) {
-            manualBlurAreas.push(currentRect)
-          }
-          currentRect = null // Clear temporary rect after adding
-          drawCanvasContent() // Final redraw with new blurred area
-          updateUIState()
-        })
+                    manualBlurAreas.push(currentRect);
+                }
+                currentRect = null;
+                drawCanvasContent();
+                updateUIState();
+            });
 
         imageCanvas.addEventListener("mouseleave", () => {
-          // End drawing if mouse leaves canvas
           if (isDrawing) {
-            imageCanvas.dispatchEvent(new MouseEvent("mouseup"))
-          }
-        })
+                    imageCanvas.dispatchEvent(new MouseEvent("mouseup"));
+                }
+            });
 
-        clearManualAreasBtn.addEventListener("click", () => {
-          manualBlurAreas = []
-          currentRect = null
-          isDrawing = false
-          drawCanvasContent()
-          updateUIState()
-        })
-
-        // --- Tool Mode Switching ---
-        autoFaceBlurBtn.addEventListener("click", async () => {
-          if (toolMode === "auto-face-blur") return
-          toolMode = "auto-face-blur"
-          manualBlurAreas = [] // Clear manual areas when switching to auto
-          if (originalImage) {
-            faces = await detectFaces(originalImage)
-          }
-          drawCanvasContent()
-          updateUIState()
-        })
-
-        manualSelectBlurBtn.addEventListener("click", () => {
-          if (toolMode === "manual-select-blur") return
-          toolMode = "manual-select-blur"
-          faces = [] // Clear auto-detected faces when switching to manual
-          drawCanvasContent()
-          updateUIState()
-        })
-
-        // Initial load
+            // Initialize
         loadModels().then(() => {
-          updateUIState()
-        })
-      })
+                updateUIState();
+            });
+        });
 
-      // Initialize Lucide icons after the script loads
-      lucide.createIcons()
+      // Initialize Lucide icons
+        lucide.createIcons();
     </script>
   </body>
 </html>

@@ -727,26 +727,32 @@
             }
 
             // Image loading
-        async function loadImage(dataUrl) {
+            async function loadImage(dataUrl) {
                 clearError();
                 isProcessing = true;
                 updateUIState();
 
                 const img = new Image();
                 img.crossOrigin = "anonymous";
-          img.onload = async () => {
+                img.onload = async () => {
                     originalImage = img;
                     manualBlurAreas = [];
+                    
+                    // Show canvas and hide placeholder
+                    imageCanvas.classList.remove("hidden");
+                    placeholder.classList.add("hidden");
+                    imageContainer.classList.add("has-image");
+                    
                     if (toolMode === "auto-detect") {
                         faces = await detectFaces(img);
-            } else {
+                    } else {
                         faces = [];
                     }
                     drawCanvasContent();
                     isProcessing = false;
                     updateUIState();
                 };
-          img.onerror = () => {
+                img.onerror = () => {
                     showError("Could not load image. Please ensure it's a valid image file.");
                     originalImage = null;
                     faces = [];
@@ -869,7 +875,7 @@
             });
 
             // Reset button
-        resetBtn.addEventListener("click", () => {
+            resetBtn.addEventListener("click", () => {
                 originalImage = null;
                 faces = [];
                 manualBlurAreas = [];
@@ -883,23 +889,29 @@
                 startPoint = null;
                 currentRect = null;
                 clearError();
+                
+                // Hide canvas and show placeholder
+                imageCanvas.classList.add("hidden");
+                placeholder.classList.remove("hidden");
+                imageContainer.classList.remove("has-image");
+                
                 drawCanvasContent();
                 updateUIState();
             });
 
             // Blur slider
-        blurSlider.addEventListener("input", (event) => {
+            blurSlider.addEventListener("input", (event) => {
                 blurRadius = parseInt(event.target.value);
                 blurValue.textContent = blurRadius + "px";
                 drawCanvasContent();
             });
 
             // Blur type radios
-        gaussianRadio.addEventListener("change", (event) => {
-          if (event.target.checked) {
+            gaussianRadio.addEventListener("change", (event) => {
+                if (event.target.checked) {
                     blurType = "gaussian";
                     blurSlider.max = 100;
-            if (blurRadius > 100) {
+                    if (blurRadius > 100) {
                         blurRadius = 100;
                         blurSlider.value = 100;
                         blurValue.textContent = "100px";
@@ -908,11 +920,11 @@
                 }
             });
 
-        pixelateRadio.addEventListener("change", (event) => {
-          if (event.target.checked) {
+            pixelateRadio.addEventListener("change", (event) => {
+                if (event.target.checked) {
                     blurType = "pixelate";
                     blurSlider.max = 50;
-            if (blurRadius > 50) {
+                    if (blurRadius > 50) {
                         blurRadius = 50;
                         blurSlider.value = 50;
                         blurValue.textContent = "50px";

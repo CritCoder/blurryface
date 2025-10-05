@@ -21,9 +21,10 @@
         }
 
         .container {
-            max-width: 1200px;
+            width: 70%;
+            max-width: 1400px;
             margin: 0 auto;
-            padding: 1rem;
+            padding: 2rem;
             min-height: 100vh;
         display: flex;
         flex-direction: column;
@@ -52,24 +53,28 @@
             display: grid;
             grid-template-columns: 1fr;
             gap: 2rem;
-            align-items: start;
+            align-items: stretch;
+            justify-items: center;
         }
 
         @media (min-width: 768px) {
             .main-content {
-                grid-template-columns: 2fr 1fr;
-                align-items: start;
+                grid-template-columns: 1fr 1fr;
+                gap: 3rem;
+                align-items: stretch;
+                justify-items: stretch;
             }
         }
 
         .image-section {
             background: white;
             border-radius: 16px;
-            padding: 1.5rem;
+            padding: 2rem;
             box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-            min-height: 400px;
+            min-height: 500px;
         display: flex;
         flex-direction: column;
+            width: 100%;
         }
 
         .image-container {
@@ -127,17 +132,25 @@
         .controls-section {
             background: white;
             border-radius: 16px;
-        padding: 1.5rem;
+            padding: 2rem;
             box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-            height: fit-content;
+            min-height: 500px;
+        display: flex;
+        flex-direction: column;
+            width: 100%;
         }
 
         .control-group {
             margin-bottom: 1.5rem;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
         }
 
         .control-group:last-child {
             margin-bottom: 0;
+            flex: 0;
         }
 
         .control-label {
@@ -353,7 +366,8 @@
 
         @media (max-width: 767px) {
             .container {
-                padding: 0.5rem;
+                width: 95%;
+                padding: 1rem;
             }
 
             .header h1 {
@@ -367,6 +381,7 @@
             .image-section,
             .controls-section {
                 padding: 1rem;
+                min-height: 400px;
             }
 
             .btn-group {
@@ -375,6 +390,12 @@
 
             .btn-group .btn {
                 min-width: auto;
+            }
+        }
+
+        @media (max-width: 1024px) {
+            .container {
+                width: 85%;
         }
       }
     </style>
@@ -727,14 +748,14 @@
             }
 
             // Image loading
-            async function loadImage(dataUrl) {
+        async function loadImage(dataUrl) {
                 clearError();
                 isProcessing = true;
                 updateUIState();
 
                 const img = new Image();
                 img.crossOrigin = "anonymous";
-                img.onload = async () => {
+          img.onload = async () => {
                     originalImage = img;
                     manualBlurAreas = [];
                     
@@ -745,14 +766,14 @@
                     
                     if (toolMode === "auto-detect") {
                         faces = await detectFaces(img);
-                    } else {
+            } else {
                         faces = [];
                     }
                     drawCanvasContent();
                     isProcessing = false;
                     updateUIState();
                 };
-                img.onerror = () => {
+          img.onerror = () => {
                     showError("Could not load image. Please ensure it's a valid image file.");
                     originalImage = null;
                     faces = [];
@@ -875,7 +896,7 @@
             });
 
             // Reset button
-            resetBtn.addEventListener("click", () => {
+        resetBtn.addEventListener("click", () => {
                 originalImage = null;
                 faces = [];
                 manualBlurAreas = [];
@@ -900,18 +921,18 @@
             });
 
             // Blur slider
-            blurSlider.addEventListener("input", (event) => {
+        blurSlider.addEventListener("input", (event) => {
                 blurRadius = parseInt(event.target.value);
                 blurValue.textContent = blurRadius + "px";
                 drawCanvasContent();
             });
 
             // Blur type radios
-            gaussianRadio.addEventListener("change", (event) => {
-                if (event.target.checked) {
+        gaussianRadio.addEventListener("change", (event) => {
+          if (event.target.checked) {
                     blurType = "gaussian";
                     blurSlider.max = 100;
-                    if (blurRadius > 100) {
+            if (blurRadius > 100) {
                         blurRadius = 100;
                         blurSlider.value = 100;
                         blurValue.textContent = "100px";
@@ -920,11 +941,11 @@
                 }
             });
 
-            pixelateRadio.addEventListener("change", (event) => {
-                if (event.target.checked) {
+        pixelateRadio.addEventListener("change", (event) => {
+          if (event.target.checked) {
                     blurType = "pixelate";
                     blurSlider.max = 50;
-                    if (blurRadius > 50) {
+            if (blurRadius > 50) {
                         blurRadius = 50;
                         blurSlider.value = 50;
                         blurValue.textContent = "50px";
